@@ -1,0 +1,2865 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система тестирования</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .question {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: none;
+        }
+        .question.active {
+            display: block;
+        }
+        .answers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px;
+            cursor: pointer;
+            border: none;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        .answer-btn {
+            width: 100%;
+            text-align: left;
+            padding: 15px;
+            margin: 5px 0;
+            font-size: 1em;
+        }
+        .answer-btn.correct {
+            background-color: #90EE90; /* Зеленый для правильных ответов */
+        }
+        .answer-btn.incorrect {
+            background-color: #FFB6C1; /* Розовый для неправильных ответов */
+        }
+        #submitBtn {
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .nav-btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .nav-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .question-counter {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+        .score-counter {
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Система тестирования</h1>
+    <div class="question-counter">Вопрос <span id="current-question">1</span> из <span id="total-questions">0</span></div>
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="showPreviousQuestion()">Предыдущий</button>
+        <button class="nav-btn" id="nextBtn" onclick="showNextQuestion()">Следующий</button>
+    </div>
+    <div id="test-container"></div>
+    <button id="submitBtn" onclick="finishTest()">Завершить тест</button>
+    <div id="result"></div>
+    <div class="score-counter">Правильные ответы: <span id="score">0</span> (<span id="percentage">0%</span>)</div>
+
+    <script>
+        let currentQuestionIndex = 0;
+        let totalQuestions = 0;
+        let score = 0;
+        let testData = [
+    {
+        "question": "1)Which of the following is (are) true about computers? \nI.They accept input.\nII.They store data.\nIII.They produce output.",
+        "image": "images/question_image_1.png",
+        "options": [
+            "II only",
+            "II and III only",
+            "I, II and III",
+            "I and III only"
+        ],
+        "answer": "I, II and III"
+    },
+    {
+        "question": "2)A computer processes data in a device called the",
+        "image": null,
+        "options": [
+            "server",
+            "CPU",
+            "device driver",
+            "URL"
+        ],
+        "answer": "CPU"
+    },
+    {
+        "question": "3)A computer file is a named collection of data that exists on which of the following? \nI.Optical disk (CD or DVD)\nII.Floppy disk\nIII.Hard disk",
+        "image": null,
+        "options": [
+            "I, II and III",
+            "III only",
+            "I only",
+            "II and III only"
+        ],
+        "answer": "I, II and III"
+    },
+    {
+        "question": "4)Computers that operate in essentially the same way are said to be",
+        "image": null,
+        "options": [
+            "compatible",
+            "compound",
+            "user-friendly",
+            "integrated"
+        ],
+        "answer": "compatible"
+    },
+    {
+        "question": "5)Which of the following can supply input to a computer?\nI.A person\nII.The environment\nAnother computer",
+        "image": null,
+        "options": [
+            "III only",
+            "I, II, and III",
+            "I and II only",
+            "I only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "6)Software has two categories: operating system software and application software.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "7)Operating system software example:",
+        "image": null,
+        "options": [
+            "Microsoft Word",
+            "Unix",
+            "Chrome",
+            "Macromedia Dreamweaver"
+        ],
+        "answer": "Unix"
+    },
+    {
+        "question": "8)Computers perform all basic operations except:",
+        "image": null,
+        "options": [
+            "Input data",
+            "Process data",
+            "Protect data",
+            "Output data"
+        ],
+        "answer": "Process data"
+    },
+    {
+        "question": "9)Which of the following can supply input to a computer?\nI.\tA person\nII.\tThe environment\nIII.\tAnother computer",
+        "image": null,
+        "options": [
+            "III only",
+            "I only",
+            "I and II only",
+            "I, II, and III"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "10)The ASCII code for the character ‘a’ is 97. How can the character ‘a’ be represented in binary using ASCII codes?",
+        "image": null,
+        "options": [
+            "00000001",
+            "01000001",
+            "None of the above",
+            "01100001"
+        ],
+        "answer": "01100001"
+    },
+    {
+        "question": "11)Which of the following represents the decimal number sequence 0, 1, 2, 3 in binary?",
+        "image": null,
+        "options": [
+            "0000, 0001, 0010, 0100",
+            "0001, 0010, 0011, 0100",
+            "None of the above",
+            "0000, 0001, 0010, 0011"
+        ],
+        "answer": "0000, 0001, 0010, 0100"
+    },
+    {
+        "question": "12)Which of the following is the binary representation of decimal number 16?",
+        "image": null,
+        "options": [
+            "1100",
+            "1111",
+            "1110",
+            "None of the above"
+        ],
+        "answer": "None of the above"
+    },
+    {
+        "question": "13)How many hexadecimal digits are needed to represent the decimal number 32?",
+        "image": null,
+        "options": [
+            "1",
+            "4",
+            "8",
+            "2"
+        ],
+        "answer": "2"
+    },
+    {
+        "question": "14)Which of the following is the binary representation of decimal number 23?",
+        "image": null,
+        "options": [
+            "11000",
+            "11110",
+            "10111",
+            "None of the above"
+        ],
+        "answer": "10111"
+    },
+    {
+        "question": "15)All of them example of input devices except?",
+        "image": null,
+        "options": [
+            "keyboard",
+            "mouse",
+            "printer"
+        ],
+        "answer": "printer"
+    },
+    {
+        "question": "16)All of them example of output devices except?",
+        "image": null,
+        "options": [
+            "CPU",
+            "Monitor",
+            "Printer",
+            "Speakers"
+        ],
+        "answer": "CPU"
+    },
+    {
+        "question": "17)Digital computer breaks all types of information into tiny units and use numbers to represent those pieces of information",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "18)An analog computer recognizes data as a continuous measurement of a physical property.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "19)Information is a collection of raw facts and figures. It may consist of numbers, characters, symbols or pictures etc.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "20)All of them are examples of hardware except:",
+        "image": null,
+        "options": [
+            "CPU",
+            "I/O",
+            "Memory"
+        ],
+        "answer": "OS"
+    },
+    {
+        "question": "21)Information technology (IT) is the use of any computers, storage, networking and other physical devices, infrastructure and processes to create, process, store, secure and exchange all forms of electronic data.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "22)All of them are examples of storage devices on the computer except:",
+        "image": null,
+        "options": [
+            "CD-ROM",
+            "CD-RW",
+            "Floppy disk",
+            "Scanner"
+        ],
+        "answer": "Scanner"
+    },
+    {
+        "question": "23)All of them are true about software except:",
+        "image": null,
+        "options": [
+            "Software is a set of computer instructions or data.",
+            "Software receives input from the user and processes this input through the computer to produce output.",
+            "Software is a type of equipment added to computer to enhance its functionality.",
+            "Software specifies how to process the user’s data"
+        ],
+        "answer": "Software is a type of equipment added to computer to enhance its functionality."
+    },
+    {
+        "question": "24)All electronic components in the system unit are connected to motherboard",
+        "image": null,
+        "options": [
+            "True",
+            "Falsе"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "25)Storage Devices are used to store data permanently even when the computer is turned off",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "26)Which of the following memory types holds data but requires very little power to retain its contents?",
+        "image": null,
+        "options": [
+            "RAM",
+            "Virtual memory",
+            "RDRAM",
+            "CMOS"
+        ],
+        "answer": "CMOS"
+    },
+    {
+        "question": "27)The list of instructions that a CPU can execute is known as its",
+        "image": null,
+        "options": [
+            "op codes",
+            "operands",
+            "glossary",
+            "instruction set"
+        ],
+        "answer": "instruction set"
+    },
+    {
+        "question": "28)CPU performance is influenced by which of the following?\nI. Word size\nII. Clock rate\nIII. Instruction set size",
+        "image": null,
+        "options": [
+            "I and III only",
+            "II only",
+            "I and II only",
+            "I, II, and III"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "29)What is an area in the computer system unit that temporarily holds data before and after it is processed until the computer is turned off?",
+        "image": null,
+        "options": [
+            "ROM",
+            "Hard disk drive",
+            "CMOS",
+            "RAM"
+        ],
+        "answer": "RAM"
+    },
+    {
+        "question": "30)When a computer is turned on, the central processing unit performs instructions specified by the _____ that searches the disk drive for the main operating system files.",
+        "image": null,
+        "options": [
+            "CMOS",
+            "RAM BIOS",
+            "virtual memory",
+            "ROM"
+        ],
+        "answer": "ROM"
+    },
+    {
+        "question": "31)Which of the following explains Latency?",
+        "image": null,
+        "options": [
+            "is the maximum number of bits or bytes that can be stored in RAM.",
+            "is typically measured in megabytes (MB).",
+            "this delay is also referred to as access time.",
+            "is a virtual memory."
+        ],
+        "answer": "this delay is also referred to as access time."
+    },
+    {
+        "question": "32)Which of the following is the primary function of a CPU?",
+        "image": null,
+        "options": [
+            "To determine if a program functions correctly before using it",
+            "To execute only the operating system's instructions",
+            "To execute only the instructions within a user specified application",
+            "To execute any program's instructions stored in RAM"
+        ],
+        "answer": "To execute any program's instructions stored in RAM"
+    },
+    {
+        "question": "33)Where is a computer's CPU located?",
+        "image": null,
+        "options": [
+            "On a hard disk drive",
+            "On a floppy disk drive",
+            "On an expansion card",
+            "On the motherboard"
+        ],
+        "answer": "On the motherboard"
+    },
+    {
+        "question": "34)A computer clock with a speed of 100 MHz cycles how many times per second?",
+        "image": null,
+        "options": [
+            "100,000",
+            "1,000",
+            "100",
+            "100,000,000"
+        ],
+        "answer": "100,000,000"
+    },
+    {
+        "question": "35)Which of the following components is (are) typically found on the motherboard of a computer?\nI. Expansion slots\nII. The microprocessor\nIII. The CMOS memory chip",
+        "image": null,
+        "options": [
+            "II only",
+            "I and II only",
+            "I, II, and III",
+            "I and III only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "36)Consider Computer A, which uses a 1.2-GHz CPU, and Computer B, which uses a 1-GHz CPU. For any given program P, which of the following is true?",
+        "image": null,
+        "options": [
+            "Program P runs faster on Computer A than it does on computer B.",
+            "Program P runs faster on Computer B than it does on computer A.",
+            "It takes the same amount of time for program P to run on computer A as it does on computer B."
+        ],
+        "answer": "Program P runs faster on Computer A than it does on computer B."
+    },
+    {
+        "question": "37)Which of the following can be an advantage of buying a computer that contains a widely-used CPU or its equivalent clone?\nI. A lot of established computer suppliers provide products using that type of CPU.\nII. The cost of the CPU is likely to be lower because of the large quantities of the CPU that have been sold.\nIII. There will be more operating systems that work with that type of CPU.",
+        "image": null,
+        "options": [
+            "I and II only",
+            "I, II, and III",
+            "I and III only",
+            "II and III only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "38)Which of the following kinds of projects typically requires a special type of CPU that would not be found in a desktop or mainframe computer?",
+        "image": null,
+        "options": [
+            "Processing requests to send and receive email",
+            "Performing business calculations for a financial report",
+            "Looking up and storing information on customer accounts",
+            "Monitoring the operation of an automobile engine"
+        ],
+        "answer": "Monitoring the operation of an automobile engine"
+    },
+    {
+        "question": "39)Which of the following is (are) true of modern microprocessors?\nI. Microprocessor chips are typically the size of a deck of cards.\nII. Microprocessors typically contain millions of transistors.",
+        "image": null,
+        "options": [
+            "I only",
+            "None",
+            "II only",
+            "I and II"
+        ],
+        "answer": "II only"
+    },
+    {
+        "question": "40)Of the following types of storage, which provides the fastest access to data?",
+        "image": null,
+        "options": [
+            "RAM",
+            "CD-ROM",
+            "hard disk",
+            "cache"
+        ],
+        "answer": "cache"
+    },
+    {
+        "question": "41)The microprocessor in a multi-purpose computer is also known as the",
+        "image": null,
+        "options": [
+            "RAM",
+            "PCI",
+            "VGA",
+            "CPU"
+        ],
+        "answer": "CPU"
+    },
+    {
+        "question": "42)Components of the CPU typically include which of the following?\nI. The control unit\nII. The Level 1 cache memory\nIII. The Arithmetic/Logic Unit",
+        "image": null,
+        "options": [
+            "I, II, and III",
+            "I and III only",
+            "I and II only",
+            "II and III only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "43)An Arithmetic/Logic Unit typically performs which of the following operations?\nI. Retrieval of instructions from RAM\nII. Performance of greater-than and less-than comparisons",
+        "image": null,
+        "options": [
+            "II only",
+            "I only",
+            "None",
+            "I and II"
+        ],
+        "answer": "II only"
+    },
+    {
+        "question": "44)Of the following, which best describes what happens when a user opens a document for editing?",
+        "image": null,
+        "options": [
+            "A copy of the document is loaded from the disk into cache memory and edited in the cache.",
+            "The document image is moved to free space on the disk where the image is directly edited.",
+            "The document image is directly edited on the disk where it resides.",
+            "A copy of the document is loaded from the disk into RAM and edited in RAM."
+        ],
+        "answer": "A copy of the document is loaded from the disk into RAM and edited in RAM."
+    },
+    {
+        "question": "45)Which of the following is (are) true of ROM?\nI. ROM stores data until computer is turned off.\nII. The instructions needed to boot a computer are typically stored in ROM.",
+        "image": null,
+        "options": [
+            "II only",
+            "None",
+            "I and II",
+            "I only"
+        ],
+        "answer": "II only"
+    },
+    {
+        "question": "46)Which of the following types of memory typically holds computer configuration settings and is powered by a small battery?",
+        "image": null,
+        "options": [
+            "ROM",
+            "Cache",
+            "Flash",
+            "CMOS"
+        ],
+        "answer": "CMOS"
+    },
+    {
+        "question": "47)Of the following types of memory, which is least expensive and is not located on the microprocessor?",
+        "image": null,
+        "options": [
+            "L1 Cache",
+            "L2 Cache",
+            "Register",
+            "DRAM"
+        ],
+        "answer": "DRAM"
+    },
+    {
+        "question": "48)Which of the following is (are) true of a bus on the motherboard?\nI.A bus is not critical to the overall performance of a computer system.\nII.A bus is used to transport data between components on the motherboard.\nIII.The CPU and other components use a bus to read and write data into RAM.",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I and II only",
+            "I and III only",
+            "I, II, and III"
+        ],
+        "answer": "II and III only"
+    },
+    {
+        "question": "49)Which of the following are important considerations when purchasing a monitor?\nI.The number of resolution modes supported\nII.The different levels of color depth supported\nIII.The size of the viewing area that can be projected",
+        "image": null,
+        "options": [
+            "I and II only",
+            "I and III only",
+            "II and III only",
+            "I, II, and III"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "50)Which of the following are true of Universal Serial Bus (USB)?\nI.Many devices can potentially be interconnected using the USB.\nII.It is used with many types of devices for transferring large amounts of data.\nIII.It supports existing serial- and parallel-port devices.",
+        "image": null,
+        "options": [
+            "I and III only",
+            "II and III only",
+            "I, II, and III",
+            "I and II only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "51)Which of the following are primarily input devices?\nI.Mouse\nII.Scanner\nIII.Printer",
+        "image": null,
+        "options": [
+            "I and III only",
+            "II and III only",
+            "I, II, and III",
+            "I and II only"
+        ],
+        "answer": "I and II only"
+    },
+    {
+        "question": "52)A monitor is primarily which kind of device?",
+        "image": null,
+        "options": [
+            "An output device",
+            "An input device",
+            "A memory device",
+            "A storage device"
+        ],
+        "answer": "An output device"
+    },
+    {
+        "question": "53)The speed of a computer bus is measured in _____, whereas the transfer rate is measured in _____.",
+        "image": null,
+        "options": [
+            "hertz, Bps",
+            "Bps, hertz",
+            "bits, channels",
+            "channels, bits"
+        ],
+        "answer": "hertz, Bps"
+    },
+    {
+        "question": "54)Input devices for a computer include which of the following?\nI.Digital cameras\nII.Scanners\nIII.Speakers",
+        "image": null,
+        "options": [
+            "I, II, and III",
+            "I and III only",
+            "III only",
+            "I and II only"
+        ],
+        "answer": "I and II only"
+    },
+    {
+        "question": "55)Computer output devices include which of the following?\nI.Projector\nII.Microphone\nIII.Printer",
+        "image": null,
+        "options": [
+            "I and II only",
+            "I, II, and III",
+            "II and III only",
+            "I and III only"
+        ],
+        "answer": "I and III only"
+    },
+    {
+        "question": "56)Which of the following correctly represents the layers of software in a computer system (from lowest level to highest level of abstraction)?",
+        "image": null,
+        "options": [
+            "BIOS, Operating System, Application, Runtime Library, User Interface, Application Program Interface",
+            "Operating System, BIOS, Runtime Library, Application Program Interface, User Interface",
+            "BIOS, Operating System, Application Program Interface, Runtime Library, Application, User Interface",
+            "BIOS, User Interface, Operating System, Application, Runtime Library, Application Program Interface"
+        ],
+        "answer": "BIOS, Operating System, Application Program Interface, Runtime Library, Application, User Interface"
+    },
+    {
+        "question": "57)Which of the following statements is true?",
+        "image": null,
+        "options": [
+            "RAM is slower than ROM.",
+            "CMOS stores configurations.",
+            "Initially, when the computer is turned on, only the operating system can be found in the RAM.",
+            "Private files are protected by the BIOS."
+        ],
+        "answer": "CMOS stores configurations."
+    },
+    {
+        "question": "58)Which of the following best describes preemptive multitasking?",
+        "image": null,
+        "options": [
+            "A real-time clock generates interrupts during which other processes may be executed.",
+            "Multiple CPUs concurrently execute processes in parallel.",
+            "As soon as a process has completed execution, the execution of another process begins.",
+            "The CPU switches between processes after executing each instruction."
+        ],
+        "answer": "The CPU switches between processes after executing each instruction."
+    },
+    {
+        "question": "59)Which of the following operations cause(s) a fault to occur?   \nI. The hardware is asked to do something it cannot do.   \nII. The memory's error correction circuitry detects an uncorrectable error.  \nIII. The program attempts to execute an illegal machine instruction.",
+        "image": null,
+        "options": [
+            "I only",
+            "I and III only",
+            "I, II and III",
+            "III only"
+        ],
+        "answer": "I, II and III"
+    },
+    {
+        "question": "60)Encapsulation is:",
+        "image": null,
+        "options": [
+            "Organizing software into layers that are relatively dependent",
+            "when each layer needs only a limited amount of knowledge to do its job",
+            "when all layers should be connected",
+            "about how software layers communicate"
+        ],
+        "answer": "when each layer needs only a limited amount of knowledge to do its job"
+    },
+    {
+        "question": "61)Hardware is:",
+        "image": null,
+        "options": [
+            "lowest level of the computer",
+            "most primitive level of software",
+            "used by Operating systems to control a device",
+            "performs functions that are critical to maintaining the operating system"
+        ],
+        "answer": "used by Operating systems to control a device"
+    },
+    {
+        "question": "62)Application Program Interface (API):",
+        "image": null,
+        "options": [
+            "Abstraction defined by OS to work with applications",
+            "Layer where the routines perform tasks the application is designed to do",
+            "A library of routines that are bound to the program during execution",
+            "Responsible for the communication between the application and the user"
+        ],
+        "answer": "Abstraction defined by OS to work with applications"
+    },
+    {
+        "question": "63)User interface:",
+        "image": null,
+        "options": [
+            "Manages storage for programs and data",
+            "Typically, it is a GUI, composed of buttons and pull-down menus",
+            "Maintain security of the system",
+            "Sets standards for all the application software used in a computer system"
+        ],
+        "answer": "Typically, it is a GUI, composed of buttons and pull-down menus"
+    },
+    {
+        "question": "64)Which of the following deals directly with the signals that control each hardware component?",
+        "image": null,
+        "options": [
+            "Basic Input/Output System (BIOS)",
+            "User Interface",
+            "Kernel",
+            "API"
+        ],
+        "answer": "Basic Input/Output System (BIOS)"
+    },
+    {
+        "question": "65)Operating systems can be classified into two categories: server operating system and desktop operating system.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "66)An E-Commerce system consists of the following components. Which of these same components must be included in a database?\nI. The data, such as information about the goods available for sale, customers, orders placed, shipping information, etc.\nII. A database must include a collection of programs that control the data, such as programs to create, maintain, and manipulate the data. These programs can be easily used to create, maintain, and manipulate data in other domains.\nIII. A database must include a collection of programs that operate on the data, but are specific to the E-commerce system. These programs enable users to browse through the store-items, place orders, track shipping, etc.",
+        "image": null,
+        "options": [
+            "I only",
+            "I and II only",
+            "I, II, and III",
+            "II only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "67)Which of them is not true about data files?",
+        "image": null,
+        "options": [
+            "applications must access data directly",
+            "applications must be aware of the file structure",
+            "applications may have to access data that they do not need while searching for some piece of data",
+            "use of access methods that act as index to retrieve the data"
+        ],
+        "answer": "applications must be aware of the file structure"
+    },
+
+
+    {
+        "question": "70)An E-Commerce system consists of the following components. Which of the same components must be included in a database management system?\nI. The data, such as information about the goods available for sale, customers, orders placed, shipping information, etc.\nII.A collection of programs must be included that control the data, such as programs to create, maintain, and manipulate the data. These programs can be easily used to create, maintain, and manipulate data in other domains, such as in a library information system.\nIII.A collection of programs that operate on the data, but are specific to the E-commerce system. These programs enable users to browse through the store-items, place orders, track shipping, etc.",
+        "image": null,
+        "options": [
+            "I only",
+            "II only",
+            "I, II and III",
+            "II and III only"
+        ],
+        "answer": "I, II and III"
+    },
+    {
+        "question": "71)An E-Commerce system consists of the following components. Which of these same components will constitute a database system?\nI. The data, such as information about the goods available for sale, customers, orders placed, shipping information, etc.\nII.A collection of programs that control the data, such as programs to create, maintain, and manipulate the data constitutes a database system. These programs can be easily used to create, maintain, and manipulate data in other domains such as in a library information system.\nIII.A collection of programs that operate on the data, but are specific to the E-commerce system, constitutes a database system. These programs enable users to browse through the store-items, place orders, track shipping, etc.",
+        "image": null,
+        "options": [
+            "I only",
+            "II only",
+            "III only",
+            "I, II and III"
+        ],
+        "answer": "I, II and III"
+    },
+    {
+        "question": "72)The foreign key in a table T1_____ the same _____ as the corresponding primary key in table T2. \nI. must have, name\nII. need to have, name\nIII. must have, id number",
+        "image": null,
+        "options": [
+            "I only",
+            "II only",
+            "None of the above ",
+            "III only"
+        ],
+        "answer": "III only "
+    },
+    {
+        "question": "73)A software system that enables users to define the data, maintain it and control its access is called?",
+        "image": null,
+        "options": [
+            "Database",
+            "Database Management System",
+            "Table",
+            "Primary key"
+        ],
+        "answer": "Database Management System"
+    },
+    {
+        "question": "74)Which of them is not component of the database system?",
+        "image": null,
+        "options": [
+            "An application specific database",
+            "A DBMS that maintains this database",
+            "Application Software that manipulates the database",
+            "Application programmers"
+        ],
+        "answer": "Application programmers"
+    },
+    {
+        "question": "75)Which of them is not type of the DBMS?",
+        "image": null,
+        "options": [
+            "Oracle",
+            "Microsoft Access",
+            "MySQL",
+            "Web Application"
+        ],
+        "answer": "Web Application"
+    },
+    {
+        "question": "76)The standard data model for modern databases is the relational in the table form.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "77)A primary key, also called a primary keyword, is a key in a relational database that is unique for each record.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "78)DBMS uses Structured Query Language(SQL) for data manipulation.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "79)Database is a shared collection of logically related data and a self-describing collection of integrated records.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "80)There are two ways to store data: data files, in database;",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "81)The generic term node or host refers to",
+        "image": null,
+        "options": [
+            "device on a network",
+            "network connection",
+            "the speed with which data is moved",
+            "physical wires or cables"
+        ],
+        "answer": "device on a network"
+    },
+    {
+        "question": "82)Which of them is used to translate hostnames into numeric IP addresses",
+        "image": null,
+        "options": [
+            "TCP",
+            "DNS",
+            "IP",
+            "UDP"
+        ],
+        "answer": "DNS"
+    },
+    {
+        "question": "83)Which of them provides reliable connection?",
+        "image": null,
+        "options": [
+            "TCP",
+            "IP",
+            "UDP",
+            "DNS"
+        ],
+        "answer": "TCP"
+    },
+    {
+        "question": "84)Data confidentiality is",
+        "image": null,
+        "options": [
+            "data is not altered unintentionally",
+            "data access is restricted to authorized personnel",
+            "services that enable data access are operational",
+            "malicious programs disabling the system"
+        ],
+        "answer": "data access is restricted to authorized personnel"
+    },
+    {
+        "question": "85)Brute force:",
+        "image": null,
+        "options": [
+            "matching every word in the dictionary against the password",
+            "trying all different alphanumeric combinations",
+            "captures data packets as they are transmitted through the network",
+            "refers to the action of tricking people into providing information needed to gain access to systems"
+        ],
+        "answer": "trying all different alphanumeric combinations"
+    },
+    {
+        "question": "86)Social engineering:",
+        "image": null,
+        "options": [
+            "trying all different alphanumeric combinations",
+            "matching every word in the dictionary against the password",
+            "refers to the action of tricking people into providing information needed to gain access to systems",
+            "captures data packets as they are transmitted through the network"
+        ],
+        "answer": "refers to the action of tricking people into providing information needed to gain access to systems"
+    },
+    {
+        "question": "87)Packet sniffing:",
+        "image": null,
+        "options": [
+            "captures data packets as they are transmitted through the network",
+            "trying all different alphanumeric combinations",
+            "matching every word in the dictionary against the password",
+            "refers to the action of tricking people into providing information needed to gain access to systems"
+        ],
+        "answer": "captures data packets as they are transmitted through the network"
+    },
+    {
+        "question": "88)IP spoofing:",
+        "image": null,
+        "options": [
+            "to detect security weaknesses in a remote or local host",
+            "is a technique used to gain unauthorized access to computers, whereby the intruder sends messages to a computer with an IP address indicating that the message is coming from a trusted host",
+            "where an attacker fakes an email header to make it appear as if it came from somewhere or someone other than the actual source",
+            "refers to the action of tricking people into providing information needed to gain access to systems"
+        ],
+        "answer": "is a technique used to gain unauthorized access to computers, whereby the intruder sends messages to a computer with an IP address indicating that the message is coming from a trusted host"
+    },
+    {
+        "question": "89)Virus:",
+        "image": null,
+        "options": [
+            "attaches itself to a file or software application",
+            "is a program that appears to be performing one task while executing a malicious task in the background",
+            "is malicious software that can execute itself on a vulnerable remote machine",
+            "penetrate computer systems more easily because they do not need a user to execute them"
+        ],
+        "answer": "attaches itself to a file or software application"
+    },
+    {
+        "question": "90)Worm:",
+        "image": null,
+        "options": [
+            "the objective of the attacker is to exhaust system resources",
+            "attaches itself to a file or software application, and then replicates itself on the host computer",
+            "horse is a program that appears to be performing one task while executing a malicious task in the background",
+            "penetrate computer systems more easily because they do not need a user to execute them"
+        ],
+        "answer": "penetrate computer systems more easily because they do not need a user to execute them"
+    },
+    {
+        "question": "91)Encryption:",
+        "image": null,
+        "options": [
+            "a message to be encrypted",
+            "is the process of transforming encrypted information so that it is intelligible to the intended recipient.",
+            "is the process of transforming information so it is unintelligible to eavesdroppers.",
+            "the encrypted version of the text"
+        ],
+        "answer": "is the process of transforming information so it is unintelligible to eavesdroppers."
+    },
+    {
+        "question": "92)Decryption:",
+        "image": null,
+        "options": [
+            "is the process of transforming information so it is unintelligible to eavesdroppers.",
+            "is the process of transforming encrypted information so that it is intelligible to the intended recipient",
+            "A message to be encrypted",
+            "The encrypted version of the message"
+        ],
+        "answer": "is the process of transforming encrypted information so that it is intelligible to the intended recipient"
+    },
+    {
+        "question": "93)Peer to Peer Network",
+        "image": null,
+        "options": [
+            "Each workstation has equivalent capabilities and responsibilities",
+            "Usually requires a Modem",
+            "the most common type is called Ethernet",
+            "have been developed in and around large cities"
+        ],
+        "answer": "Each workstation has equivalent capabilities and responsibilities"
+    },
+    {
+        "question": "94)Star Topology",
+        "image": null,
+        "options": [
+            "Each device is connected directly to two other devices, one on either side of it.",
+            "All devices are connected to a central hub",
+            "All devices are connected to one another in the shape of a closed loop.",
+            "There are terminators at each end of the bus  that stops the signal and keeps it from  traveling backwards."
+        ],
+        "answer": "All devices are connected to a central hub"
+    },
+    {
+        "question": "95)Which of them is not true about Firewalls",
+        "image": null,
+        "options": [
+            "A firewall is a software that can be loaded on to a network that can serve as a barrier that keeps destructive forces away from a network of computers",
+            "Packets of data are analyzed against a set of criteria or standards called filters.",
+            "Filters block certain designated IP addresses.",
+            "Provides other companies or individuals with access to the Internet"
+        ],
+        "answer": "Provides other companies or individuals with access to the Internet"
+    },
+    {
+        "question": "96)A digital subscriber line",
+        "image": null,
+        "options": [
+            "converts computer data into an analog audio signal for transfer over a telephone line, and then a modem at the destination converts it back again into data",
+            "uses the same line that your cable TV signals come in on to transfer the data back and forth",
+            "uses regular copper phone lines to transfer digital data to and from the phone company’s central office",
+            "wireless connection"
+        ],
+        "answer": "uses regular copper phone lines to transfer digital data to and from the phone company’s central office"
+    },
+    {
+        "question": "97)Which of the following services use TCP?\na. DHCP\nb. SMTP\nc. HTTP\nd. TFTP\ne. FTP",
+        "image": null,
+        "options": [
+            "a and b",
+            "a,b and c",
+            "c, d and e",
+            "b, c and e"
+        ],
+        "answer": "b, c and e"
+    },
+    {
+        "question": "98)Using Substitution encryption encrypt following:\nplaintext: GAR \nencryption key: shift right by two character",
+        "image": null,
+        "options": [
+            "IST",
+            "UDP",
+            "FTP",
+            "ICT"
+        ],
+        "answer": "ICT"
+    },
+    {
+        "question": "99)Hostname is an unique identification that specifies a particular computer on the Internet",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "100)Network software translates a hostname into its corresponding IP address\n For example: 205).39.145).18 ",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "101)File server a computer that stores and manages files for multiple users on a network",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "102)In a denial of service (DoS) attack, the objective of the attacker is to exhaust system resources such as network connectivity and network bandwidth to prevent legitimate traffic from being transmitted and processed.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "103)A Trojan horse is a program that appears to be performing one task while executing a malicious task in the background.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "104)Web server a computer dedicated to responding to requests (from the browser client) for web pages",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "105)To improve the efficiency of transferring information over a shared communication line, messages are divided into fixed-sized, numbered packets",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "106)Network Service Provider (NSP):",
+        "image": null,
+        "options": [
+            "maintains a series of communication links for internet data.",
+            "carry internet data from an inter-linked communications network.",
+            "is a standard set of communication rules used by every computer that connects to the internet.",
+            "is a major internet communication links."
+        ],
+        "answer": "maintains a series of communication links for internet data."
+    },
+    {
+        "question": "107)Server is:",
+        "image": null,
+        "options": [
+            "Any computer on the network that requests services from another computer on the network",
+            "Any computer that receives requests from client computers, processes and sends the output",
+            "Any page that is hosted on the Internet",
+            "The process of creating, modifying web pages"
+        ],
+        "answer": "Any computer that receives requests from client computers, processes and sends the output"
+    },
+    {
+        "question": "108)Web Page is:",
+        "image": null,
+        "options": [
+            "The process of creating, modifying web pages",
+            "Any computer on the network that requests services from another computer on the network",
+            "Any computer that receives requests from client computers, processes and sends the output",
+            "Any page that is hosted on the Internet"
+        ],
+        "answer": "Any page that is hosted on the Internet"
+    },
+    {
+        "question": "109)Web Development is:",
+        "image": null,
+        "options": [
+            "The process of creating, modifying web pages",
+            "Any computer that receives requests from client computers, processes and sends the output",
+            "Any computer on the network that requests services from another computer on the network",
+            "Any page that is hosted on the Internet"
+        ],
+        "answer": "The process of creating, modifying web pages"
+    },
+    {
+        "question": "110)Which of them is not true about WEB  server ?",
+        "image": null,
+        "options": [
+            "used to host the web sites",
+            "used to retrieve web sites",
+            "used to monitor access",
+            "used to control logging"
+        ],
+        "answer": "used to control logging"
+    },
+    {
+        "question": "111)The web information is stored in the Web pages",
+        "image": null,
+        "options": [
+            "In HTML format",
+            "In the Web server file system",
+            "In XML format",
+            "In HTTP form"
+        ],
+        "answer": "In HTML format"
+    },
+    {
+        "question": "112)Which of the following is not true about HTTP ?",
+        "image": null,
+        "options": [
+            "protocol used to access data on the WWW",
+            "uses one TCP connection on well-known port 80",
+            "two types of http messages: Request, Response",
+            "uses one UDP connection on well-known port 25)"
+        ],
+        "answer": "uses one UDP connection on well-known port 25)"
+    },
+    {
+        "question": "113)Client-side scripting",
+        "image": null,
+        "options": [
+            "is any code that runs within a web browser.",
+            "executes on the server side",
+            "uses request - response methods",
+            "hidden from the users"
+        ],
+        "answer": "is any code that runs within a web browser."
+    },
+    {
+        "question": "114)TCP/IP (Transport control Protocol/Internet Protocol):",
+        "image": null,
+        "options": [
+            "carry internet data from an inter-linked communications network.",
+            "maintains a series of communication links for internet data.",
+            "is a major internet communication links.",
+            "is a standard set of communication rules used by every computer that connects to the internet."
+        ],
+        "answer": "is a standard set of communication rules used by every computer that connects to the internet."
+    },
+    {
+        "question": "115)Server side code",
+        "image": null,
+        "options": [
+            "reduces the load on the server",
+            "reduces network traffic",
+            "remains hidden from users",
+            "dependent on browsers"
+        ],
+        "answer": "remains hidden from users"
+    },
+    {
+        "question": "116)Which of them is the server-side language?",
+        "image": null,
+        "options": [
+            "HTML",
+            "Java",
+            "Javascript",
+            "CSS"
+        ],
+        "answer": "Java"
+    },
+    {
+        "question": "117)Which of them is the client-side language?",
+        "image": null,
+        "options": [
+            "Java",
+            "PHP",
+            "Javascript",
+            "ASP.NET"
+        ],
+        "answer": "Javascript"
+    },
+    {
+        "question": "118)Define the attribute name: align= “right”;",
+        "image": null,
+        "options": [
+            "p",
+            "align",
+            "\"right\""
+        ],
+        "answer": "align"
+    },
+    {
+        "question": "119)Cables, wires and satellites",
+        "image": null,
+        "options": [
+            "maintains a series of communication links for internet data.",
+            "carry internet data from an inter-linked communications network.",
+            "is a major internet communication links.",
+            "is a standard set of communication rules used by every computer that connects to the internet."
+        ],
+        "answer": "carry internet data from an inter-linked communications network."
+    },
+    {
+        "question": "120)Web browser",
+        "image": null,
+        "options": [
+            "Request a web page from a web server by typing either URL or a web page",
+            "It is a collection of information stored on the networked computers over the world.",
+            "Internet service that stores and provides information.",
+            "One or more links that point to other web pages which makes it easy to follow a thread of related information."
+        ],
+        "answer": "Request a web page from a web server by typing either URL or a web page"
+    },
+    {
+        "question": "121)HTTP",
+        "image": null,
+        "options": [
+            "is the protocol that allows Web browsers to communicate with Web servers.",
+            "is a global Internet address of a document on a computer.",
+            "IP address or the domain name where the resource is located.",
+            "uses UDP protocol."
+        ],
+        "answer": "is the protocol that allows Web browsers to communicate with Web servers."
+    },
+    {
+        "question": "122)Client is",
+        "image": null,
+        "options": [
+            "The process of creating, modifying web pages.",
+            "Any page that is hosted on the Internet.",
+            "Any computer that receives requests from client computers, processes and sends the output.",
+            "Any computer on the network that requests services from another computer on the network."
+        ],
+        "answer": "Any computer on the network that requests services from another computer on the network."
+    },
+    {
+        "question": "123)HTML is the standardized markup language that structures and formats content on the web. Page elements like the titles, headings, text and links are included.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "124)CSS allows a programmer to define the look and format of multiple webpages at once; elements like color, layout and fonts are specified in one file thatвЂ™s kept separate from the core code of the webpage.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "125)JavaScript is the programming language that brings animation, games, apps, interactivity and other dynamic effects to life.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "126)Client-side scripting simply refers to any code that facilitates the transfer of data from that web server to a browser. It also refers to any code used to build a database or manage data on the web server itself.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "False"
+    },
+    {
+        "question": "127)Server-side scripts run on the web server, which has the power and resources to run programs that are too resource intensive to be run by a web browser.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "128)The first part of the URL address indicates what protocol to use, and the second part specifies the IP address or the domain name where the resource is located.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "129)The Internet is a collection of documents that are interconnected by hyper-links.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "130)The Web is a collection of computers or networking devices connected together.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "False"
+    },
+    {
+        "question": "131) Which of the following correctly represents the layers of software in a computer system (from lowest level to highest level of abstraction)?",
+        "image": null,
+        "options": [
+            "BIOS, Operating System, Application, Runtime Library, User Interface, Application Program Interface",
+            "Operating System, BIOS, Runtime Library, Application Program Interface, User Interface",
+            "BIOS, Operating System, Application Program Interface, Runtime Library, Application, User Interface",
+            "BIOS, User Interface, Operating System, Application, Runtime Library, Application Program Interface"
+        ],
+        "answer": "BIOS, Operating System, Application Program Interface, Runtime Library, Application, User Interface"
+    },
+    {
+        "question": "132)Which of the following E-Commerce types refers to the consumers make known a particular need for a product or service, and suppliers compete to provide the product or service to consumers?",
+        "image": null,
+        "options": [
+            "Business-to-Business (B-to-B)",
+            "Business-to-Consumer (B-to-C)",
+            "Consumer-to-Business (C-to-B)",
+            "Consumer-to-Consumer (C-to-C)"
+        ],
+        "answer": "Consumer-to-Business (C-to-B)"
+    },
+    {
+        "question": "133)Which of the following statements is true?",
+        "image": null,
+        "options": [
+            "RAM is slower than ROM.",
+            "CMOS stores configurations.",
+            "Initially, when the computer is turned on, only the operating system can be found in the RAM.",
+            "Private files are protected by the BIOS."
+        ],
+        "answer": "CMOS stores configurations."
+    },
+    {
+        "question": "134)Which of the following best describes preemptive multitasking?",
+        "image": null,
+        "options": [
+            "A real-time clock generates interrupts during which other processes may be executed.",
+            "Multiple CPUs concurrently execute processes in parallel.",
+            "As soon as a process has completed execution, the execution of another process begins.",
+            "The CPU switches between processes after executing each instruction."
+        ],
+        "answer": "The CPU switches between processes after executing each instruction."
+    },
+    {
+        "question": "135)What does ECDL stand for?",
+        "image": null,
+        "options": [
+            "European Computer Driving License",
+            "European Computer Diving License",
+            "European Commercial Driving License",
+            "European Computer Driving Limitation"
+        ],
+        "answer": "European Computer Driving License"
+    },
+    {
+        "question": "136) Which of the following operations cause(s) a fault to occur? \n  I. The hardware is asked to do something it cannot do.  \n II. The memory's error correction circuitry detects an uncorrectable error. \n III. The program attempts to execute an illegal machine instruction.",
+        "image": null,
+        "options": [
+            "I only",
+            "I and III only",
+            "I, II and III",
+            "III only"
+        ],
+        "answer": "I, II and III"
+    },
+    {
+        "question": "137)Encapsulation is:",
+        "image": null,
+        "options": [
+            "Organizing software into layers that are relatively dependent",
+            "when each layer needs only a limited amount of knowledge to do its job",
+            "when all layers should be connected",
+            "about how software layers communicate"
+        ],
+        "answer": "when each layer needs only a limited amount of knowledge to do its job"
+    },
+    {
+        "question": "138)Hardware:",
+        "image": null,
+        "options": [
+            "lowest level of the computer",
+            "most primitive level of software",
+            "used by Operating systems to control a device",
+            "performs functions that are critical to maintaining the operating system"
+        ],
+        "answer": "lowest level of the computer"
+    },
+    {
+        "question": "139)Application Program Interface (API):",
+        "image": null,
+        "options": [
+            "Abstraction defined by OS to work with applications",
+            "Layer where the routines perform tasks the application is designed to do",
+            "A library of routines that are bound to the program during execution",
+            "Responsible for the communication between the application and the user"
+        ],
+        "answer": "Abstraction defined by OS to work with applications"
+    },
+    {
+        "question": "140)User interface:",
+        "image": null,
+        "options": [
+            "Manages storage for programs and data",
+            "Typically, it is a GUI, composed of buttons and pull-down menus",
+            "Maintain security of the system",
+            "Sets standards for all the application software used in a computer system"
+        ],
+        "answer": "Typically, it is a GUI, composed of buttons and pull-down menus"
+    },
+    {
+        "question": "141)Which of the following deals directly with the signals that control each hardware component?",
+        "image": null,
+        "options": [
+            "Basic Input/Output System (BIOS)",
+            "User Interface",
+            "Kernel",
+            "API"
+        ],
+        "answer": "Basic Input/Output System (BIOS)"
+    },
+    {
+        "question": "142)Operating systems can be classified into two categories\\: server operating system and desktop operating system.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "143)Moodle stands for ...",
+        "image": null,
+        "options": [
+            "Modular Object Oriented Dynamic Learning Enhancement",
+            "Mobile Object Orientated Dynamic Learning Environment",
+            "Modular Object Orientated Dynamic Learning Environment",
+            "Module Object Orientated Dynamic Learning Environment"
+        ],
+        "answer": "Modular Object Orientated Dynamic Learning Environment"
+    },
+    {
+        "question": "144)Electronic Retailing (E-Tailing) is?",
+        "image": null,
+        "options": [
+            "The selling of retail goods on the Internet",
+            "The electronic interchange of business information using a standardized format",
+            "The electronic transfer of money from one bank account to another, either within a single financial institution or across multiple institutions, via computer-based systems, without the direct intervention of bank staff",
+            "Money transaction via the internet"
+        ],
+        "answer": "The selling of retail goods on the Internet"
+    },
+    {
+        "question": "145)EFT (Electronic Funds Transfer) is?",
+        "image": null,
+        "options": [
+            "The electronic transfer of money from one bank account to another, either within a single financial institution or across multiple institutions, via computer-based systems, without the direct intervention of bank staff",
+            "The electronic interchange of business information using a standardized format",
+            "The selling of retail goods on the Internet"
+        ],
+        "answer": "The electronic transfer of money from one bank account to another, either within a single financial institution or across multiple institutions, via computer-based systems, without the direct intervention of bank staff"
+    },
+    {
+        "question": "146)EDI (Electronic Data Interchange) is?",
+        "image": null,
+        "options": [
+            "The selling of retail goods on the Internet",
+            "The electronic interchange of business information using a standardized format",
+            "The electronic transfer of money from one bank account to another, either within a single financial institution or across multiple institutions, via computer-based systems, without the direct intervention of bank staff"
+        ],
+        "answer": "The electronic interchange of business information using a standardized format "
+    },
+    {
+        "question": "147)How many forms does E-Learning have?",
+        "image": null,
+        "options": [
+            "4",
+            "2",
+            "3",
+            "5)"
+        ],
+        "answer": "2"
+    },
+    {
+        "question": "148)Similar to face-to-face experience but on a massive global scale refers to which feature of E-Commerce?",
+        "image": null,
+        "options": [
+            "Customization",
+            "Ubiquity",
+            "Global Reach",
+            "Interactivity"
+        ],
+        "answer": "Global Reach"
+    },
+    {
+        "question": "149)Choose the feature of E-Commerce?",
+        "image": null,
+        "options": [
+            "Information Density",
+            "Online learning",
+            "Media-rich",
+            "EDS"
+        ],
+        "answer": "Information Density"
+    },
+    {
+        "question": "150)Which of them is not type of Synchronous e-learning?",
+        "image": null,
+        "options": [
+            "Webinars",
+            "Virtual Classroom",
+            "Audio and Video Conferencing",
+            "Discussion forums and groups"
+        ],
+        "answer": "Discussion forums and groups"
+    },
+    {
+        "question": "151)Which of them belongs to Asynchronous e-learning?",
+        "image": null,
+        "options": [
+            "Webinars",
+            "Virtual Classroom",
+            "Application Sharing",
+            "Self-paced online courses"
+        ],
+        "answer": "Self-paced online courses"
+    },
+    {
+        "question": "152)Which of them is not characteristics of E-Learning?",
+        "image": null,
+        "options": [
+            "Empowered by digital technology",
+            "Computer enhanced learning",
+            "Technology enhanced learning",
+            "Empowered by standardized teaching tools"
+        ],
+        "answer": "Empowered by standardized teaching tools"
+    },
+    {
+        "question": "153)Which of them is not advantages of e-commerce?",
+        "image": null,
+        "options": [
+            "Speed",
+            "Large catalogs",
+            "Global marketplace",
+            "Privacy, security, payment, identity"
+        ],
+        "answer": "Privacy, security, payment, identity"
+    },
+    {
+        "question": "154)To which type of E-Governance online training and online conference belong?",
+        "image": null,
+        "options": [
+            "Government-to-Business (G-to-B)",
+            "Government-to-Government (G-to-G)",
+            "Government-to-Employee (G-to-E)",
+            "Government-to-Citizens (G-to-C)"
+        ],
+        "answer": "Government-to-Employee (G-to-E)"
+    },
+    {
+        "question": "155)Student directed learning refers to the ... type of E-Learning",
+        "image": null,
+        "options": [
+            "Synchronous",
+            "Asynchronous"
+        ],
+        "answer": "Asynchronous"
+    },
+    {
+        "question": "156)E-Commerce is?",
+        "image": null,
+        "options": [
+            "All about buying, selling, transferring or exchanging of information via computer networks, including the Internet",
+            "Broader definition of E-Commerce that also includes servicing customers, collaborating with business partners, conducting e-learning, and conducting electronic transactions within an organization",
+            "The selling of retail goods on the Internet",
+            "The electronic transfer of money from one bank account to another, either within a single financial institution or across multiple institutions, via computer-based systems, without the direct intervention of bank staff"
+        ],
+        "answer": "All about buying, selling, transferring or exchanging of information via computer networks, including the Internet"
+    },
+    {
+        "question": "157)Electronic Retailing (E-Tailing) is?",
+        "image": null,
+        "options": [
+            "The selling of retail goods on the Internet",
+            "The electronic interchange of business information using a standardized format",
+            "The electronic transfer of money from one bank account to another, either within a single financial institution or across multiple institutions, via computer-based systems, without the direct intervention of bank staff",
+            "All about buying, selling, transferring or exchanging of information via computer networks, including the Internet"
+        ],
+        "answer": "The selling of retail goods on the Internet"
+    },
+    {
+        "question": "158)A website that is dedicated to exchange of information, goods and services to other business rather than final consumers.",
+        "image": null,
+        "options": [
+            "Consumer-to-Consumer (C-to-C)",
+            "Consumer-to-Business (C-to-B)",
+            "Business-to-Consumer (B-to-C)",
+            "Business-to-Business (B-to-B)"
+        ],
+        "answer": "Business-to-Business (B-to-B)"
+    },
+    {
+        "question": "159)A website where all transactions take place between a business house and the final consumer",
+        "image": null,
+        "options": [
+            "Business-to-Consumer (B-to-C)",
+            "Business-to-Business (B-to-B)",
+            "Consumer-to-Business (C-to-B)",
+            "Consumer-to-Consumer (C-to-C)"
+        ],
+        "answer": "Business-to-Consumer (B-to-C)"
+    },
+    {
+        "question": "160)A website where all the transactions take place between a consumer and the website acting as a platform that brings the buyer and the seller together.",
+        "image": null,
+        "options": [
+            "Business-to-Business (B-to-B)",
+            "Business-to-Consumer (B-to-C)",
+            "Consumer-to-Business (C-to-B)",
+            "Consumer-to-Consumer (C-to-C)"
+        ],
+        "answer": "Consumer-to-Consumer (C-to-C)"
+    },
+    {
+        "question": "161)E-learning is a wide set of applications and processes which use all available electronic media to deliver vocational education and training more flexibly.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "162)Asynchronous e-learning is student directed, self-paced learning.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "163)Mission of European Computer Driving License (ECDL)В is to enable proficient use of ICT that empowers individuals, organizations and society, through the development, promotion and delivery of quality certification programs throughout the world.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "164)Open university is a private learning and research university.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "False"
+    },
+    {
+        "question": "165)Electronic Document Signature (EDS) is dataВ in electronic form, which is logically associated with other data in electronic form and which is used by the signatory to sign.",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "166)Google Docs is a type of cloud computing",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "167)Which one of these is not a cloud computing pricing model",
+        "image": null,
+        "options": [
+            "Pay Per Use",
+            "Subscription",
+            "Ladder",
+            "Perpetual License"
+        ],
+        "answer": "Perpetual License"
+    },
+    {
+        "question": "168)Which of these is not a major type of cloud computing usage",
+        "image": null,
+        "options": [
+            "Hardware as a service",
+            "Platform as a service",
+            "Software as a service",
+            "Infrastructure as a service"
+        ],
+        "answer": "Platform as a service"
+    },
+    {
+        "question": "169)An Internet connection is necessary for cloud computing interaction",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "170)“Cloud” in cloud computing represents what",
+        "image": null,
+        "options": [
+            "Wireless",
+            "Hard drives",
+            "People",
+            "Internet"
+        ],
+        "answer": "Internet"
+    },
+    {
+        "question": "171)Which of these should a company consider before implementing cloud computing technology. \nI: Employee satisfaction, \nII: Potential cost reduction, \nIII: Information sensitivity",
+        "image": null,
+        "options": [
+            "Only I",
+            "Only II",
+            "Only III",
+            "I, II, and III"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "172)What exactly is cloud computing",
+        "image": null,
+        "options": [
+            "A way to organize desktop computers",
+            "Lightweight software that takes up little space on a hard drive",
+            "Computing resources that can be accessed on demand, like electricity from a utility",
+            "The World Wide Web"
+        ],
+        "answer": "Computing resources that can be accessed on demand, like electricity from a utility"
+    },
+    {
+        "question": "173)What widely used service is built on cloud-computing technology? \nI: Twitter, \nII: Skype, \nIII: Gmail, \nIV: YouTube.",
+        "image": null,
+        "options": [
+            "Only I",
+            "Only II",
+            "Only III and I",
+            "I, II, III and IV"
+        ],
+        "answer": "I, II, III and IV"
+    },
+    {
+        "question": "174)Cloud computing embraces many concepts that were previously touted as the next big thing in information technology. Which of these is not an antecedent of the cloud?",
+        "image": null,
+        "options": [
+            "Utility computing",
+            "Remote hosted services",
+            "Grid computing",
+            "Desktop computing"
+        ],
+        "answer": "Desktop computing"
+    },
+    {
+        "question": "175)What does SQL stand for",
+        "image": null,
+        "options": [
+            "Structured Query Language",
+            "Strong Question Language",
+            "Structured Question Language",
+            "Structured Querty Language"
+        ],
+        "answer": "Structured Query Language"
+    },
+    {
+        "question": "176)Which SQL statement is used to extract data from a database?",
+        "image": null,
+        "options": [
+            "Select",
+            "GET",
+            "OPEN",
+            "Extract"
+        ],
+        "answer": "Select"
+    },
+    {
+        "question": "177)Computerized representations of models and attributes of real or simulated entities are?",
+        "image": null,
+        "options": [
+            "Data",
+            "Knowledge",
+            "Information",
+            "Database"
+        ],
+        "answer": "Data"
+    },
+    {
+        "question": "178)Representationof the results of a computational process, such as statistical analysis, or the transcripts of some meanings assigned by human beings is",
+        "image": null,
+        "options": [
+            "Data",
+            "Knowledge",
+            "Information",
+            "Database"
+        ],
+        "answer": "Information"
+    },
+    {
+        "question": "179)Representation of the results of a computer-simulated cognitive process, such as perception, learning, association, and reasoning is",
+        "image": null,
+        "options": [
+            "Data",
+            "Knowledge",
+            "Information",
+            "Database"
+        ],
+        "answer": "Knowledge"
+    },
+    {
+        "question": "180)Continuous representation, similar to the actual information it represents is",
+        "image": null,
+        "options": [
+            "Analog data",
+            "Digital data",
+            "Continuous data",
+            "Discrete data"
+        ],
+        "answer": "Analog data"
+    },
+    {
+        "question": "181)A discrete representation, breaking the information up into separate(discrete) elements is",
+        "image": null,
+        "options": [
+            "Analog data",
+            "Digital data",
+            "Continuous data",
+            "Discrete data"
+        ],
+        "answer": "Digital data"
+    },
+    {
+        "question": "182)Two bits can represent",
+        "image": null,
+        "options": [
+            "Four things",
+            "Two things",
+            "Eight things",
+            "Ten things"
+        ],
+        "answer": "Four things"
+    },
+    {
+        "question": "183)The extended version of the ASCII character set is not enough for international use",
+        "image": null,
+        "options": [
+            "Unicode",
+            "Barcode",
+            "EBCDIC",
+            "Binary code"
+        ],
+        "answer": "Unicode"
+    },
+    {
+        "question": "184)The Unicode character set uses _________ per character",
+        "image": null,
+        "options": [
+            "16 bits",
+            "8 bits",
+            "4 bits",
+            "32 bits"
+        ],
+        "answer": "16 bits"
+    },
+    {
+        "question": "185)The first 256 characters in the Unicode character set correspond exactly to the extended ASCII character set",
+        "image": null,
+        "options": [
+            "True",
+            "False"
+        ],
+        "answer": "True"
+    },
+    {
+        "question": "186)List the levels of computer systems from top to down",
+        "image": null,
+        "options": [
+            "users, application software, operating system software, and the hardware system",
+            "application software, operating system software, users, and the hardware system",
+            "application software, users,operating system software, and the hardware system",
+            "hardware system, operating system software, application software, and users"
+        ],
+        "answer": "users, application software, operating system software, and the hardware system"
+    },
+    {
+        "question": "187)List the levels of computer systems from bottom to up",
+        "image": null,
+        "options": [
+            "users, application software, operating system software, and the hardware system",
+            "application software, operating system software, users, and the hardware system",
+            "application software, users,operating system software, and the hardware system",
+            "hardware system, operating system software, application software, and users"
+        ],
+        "answer": "hardware system, operating system software, application software, and users"
+    },
+    {
+        "question": "188)What is the name of the Internet protocol used to make sure messages are reliably transmitted and received by the destination computer?",
+        "image": null,
+        "options": [
+            "TCP",
+            "ISP",
+            "IP",
+            "POP"
+        ],
+        "answer": "TCP"
+    },
+    {
+        "question": "189)The World Wide Web is",
+        "image": null,
+        "options": [
+            "the same as the Internet",
+            "a software package",
+            "a client/server application program used to access the Internet",
+            "a collection of Web servers throughout the world"
+        ],
+        "answer": "a client/server application program used to access the Internet"
+    },
+    {
+        "question": "190)When a fully explicit URL such as http://www.iitu.kz is provided to an Internet browser, \"http\" refers to the name of the",
+        "image": null,
+        "options": [
+            "domain where the Web server resides",
+            "language in which the page is written",
+            "Web server containing the Web page",
+            "protocol used to perform the operation"
+        ],
+        "answer": "protocol used to perform the operation"
+    },
+    {
+        "question": "191)IP host addresses on the Internet are composed of which of the following?",
+        "image": null,
+        "options": [
+            "A 24-bit number",
+            "A single decimal number ranging from 0 to 25)5)",
+            "Four decimal numbers ranging from 0 to 25)5)",
+            "Any number of lowercase alphanumeric characters"
+        ],
+        "answer": "Four decimal numbers ranging from 0 to 25)5)"
+    },
+    {
+        "question": "192)After gaining access to a computer system, hackers will typically do which of the following? \nI.Set up control for further attacks  \nII.Take, alter, or delete data   \nIII.Use the computer system resources",
+        "image": null,
+        "options": [
+            "I, II, and III",
+            "II and III only",
+            "I and II only",
+            "II only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "193)Which of the following is (are) true regarding network bandwidth attacks? \nI.They can be used to launch a denial of service attack. \nII.They can cause a Web site to become unavailable. \nIII.They work by flooding a network with traffic.",
+        "image": null,
+        "options": [
+            "I and II only",
+            "II and III only",
+            "I, II, and III",
+            "I and III only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "194)Which of the following computer attacks is spoofing?",
+        "image": null,
+        "options": [
+            "Using a program to decrypt passwords",
+            "Monitoring a network to intercept data",
+            "Using one computer to impersonate another",
+            "Accessing an unprotected port on a computer"
+        ],
+        "answer": "Using one computer to impersonate another"
+    },
+    {
+        "question": "195)The method of cracking a password by trying all possible alphanumeric combinations is known as a _____ attack",
+        "image": null,
+        "options": [
+            "port scanning",
+            "dictionary",
+            "brute force",
+            "man-in-the-middle"
+        ],
+        "answer": "brute force"
+    },
+    {
+        "question": "196)After loading a word processor document from a floppy, a user's computer begins to show symptoms of being infected by a virus. Which of the following is true concerning this situation?",
+        "image": null,
+        "options": [
+            "The document text could have contained an embedded virus.",
+            "The word processing program checks all documents for viruses before using them, so the source the virus was not the document.",
+            "A document cannot contain a virus, so the source of the virus was not the word processing document.",
+            "The document could have contained a macro that contained a virus."
+        ],
+        "answer": "The document could have contained a macro that contained a virus."
+    },
+    {
+        "question": "197)Which of the following is email spoofing?",
+        "image": null,
+        "options": [
+            "Sending large amounts of unsolicited email",
+            "Sending viruses through email",
+            "Modifying an email header to fake the email source",
+            "Intercepting email by monitoring a network"
+        ],
+        "answer": "Modifying an email header to fake the email source"
+    },
+    {
+        "question": "198)Which of the following is (are) true regarding a Smurf attack? \nI.It can use the ping command to perform the attack.\nII.It allows a hacker to steal data from a computer.\nIII.It uses other computers on a network to attack a single computer",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I and III only",
+            "I and II only",
+            "I, II, and III"
+        ],
+        "answer": "I and III only"
+    },
+    {
+        "question": "199)Which of the following consequences of executing a virus on a PC is (are) possible?  \nI.Files appear to be missing or deleted from the hard disk. \nII.Either the PC system board or a disk drive is physically damaged. \nIII.There is low computer memory on disks.",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I only",
+            "I and III only",
+            "I, II, and III"
+        ],
+        "answer": "I and III only"
+    },
+    {
+        "question": "200)Which of the following is (are) true regarding computer security attacks?  \nI.Hackers can cause home computers to attack other computers. \nII.Organizations typically experience more computer security breaches from internal personnel than from people external to the organization.",
+        "image": null,
+        "options": [
+            "I only",
+            "II only",
+            "None",
+            "I and II"
+        ],
+        "answer": "I and II"
+    },
+    {
+        "question": "201)Which of the following is (are) true regarding network connectivity attacks?  \nI. A network connectivity attack can be achieved by generating numerous half-open connections to the target computer.  \nII. A network connectivity attack can be achieved by generating excessive amount of traffic on the target network.",
+        "image": null,
+        "options": [
+            "I and II",
+            "None",
+            "I only",
+            "II only"
+        ],
+        "answer": "I and II"
+    },
+    {
+        "question": "202)Which of the following can be used to prevent social engineering attacks? \nI.Verifying identities of people requesting sensitive information  \nII.Using data encryption  \nIII.Being aware of computer fraud schemes",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I, II, and III",
+            "I and III only",
+            "III only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "203)Which of the following is (are) true about encryption of data? \n I.Given the high speed and low cost CPUs available, even the most complex encrypted data is not entirely safe for a long period of time.  \nII.The more bits in the key of the encryption algorithm, the harder it is to break the encryption.   \nIII.In public key encryption, the sender and the receiver of encrypted data both use the same key value to encrypt and decrypt the data.",
+        "image": null,
+        "options": [
+            "I and III only",
+            "I, II, and III",
+            "II and III only",
+            "I and II only"
+        ],
+        "answer": "I and II only"
+    },
+    {
+        "question": "204)How does a receiver of an encrypted message verify that the message originated from the sender?",
+        "image": null,
+        "options": [
+            "The receiver compares the message with the decrypted signature of the sender.",
+            "The receiver compares the message hashed with the sender's signature.",
+            "The receiver compares the message hashed with the decrypted signature of the sender.",
+            "The receiver compares the received message with the sender's signature."
+        ],
+        "answer": "The receiver compares the message hashed with the decrypted signature of the sender."
+    },
+    {
+        "question": "205)To encrypt a message using public-key encryption scheme, which of the following must be done?",
+        "image": null,
+        "options": [
+            "Encrypt the message using the receiver's private key.",
+            "Encrypt the message using the sender's private key.",
+            "Encrypt the message using the receiver's public key.",
+            "Encrypt the message using the sender's public key."
+        ],
+        "answer": "Encrypt the message using the receiver's public key."
+    },
+    {
+        "question": "206)Which of the following must be included on a digital certificate? \nI.The name of the entity and the expiration date  \nII.The number of times the certificate has been viewed  \nIII.The digital signature of the certificate authority",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I, and III",
+            "I, II, and III",
+            "I and II only"
+        ],
+        "answer": "I, and III"
+    },
+    {
+        "question": "207)Encryption is used to",
+        "image": null,
+        "options": [
+            "save storage space",
+            "store data files in a vault",
+            "protect privacy by encoding data",
+            "archive system files"
+        ],
+        "answer": "protect privacy by encoding data"
+    },
+    {
+        "question": "208)Of the following processes, which best characterizes the authentication process?",
+        "image": null,
+        "options": [
+            "Logging into a secure siteVerifying that software that is in use is not a pirated copy",
+            "Authorizing use of some resource by a particular user",
+            "Establishing a user identity"
+        ],
+        "answer": "Establishing a user identity"
+    },
+    {
+        "question": "209)Which of the following is (are) true regarding computer network intrusion detection systems? \nI.They compare traffic against a database of known attack signatures.\nII. They can generate false alarms.",
+        "image": null,
+        "options": [
+            "I only",
+            "None",
+            "II only",
+            "I and II"
+        ],
+        "answer": "I and II"
+    },
+    {
+        "question": "210)The security of data can be violated through which of the following? I.Malicious acts \nII.User errors  \nIII.Disasters",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I, II, and III",
+            "I only",
+            "I and III only"
+        ],
+        "answer": "I, II, and III"
+    },
+    {
+        "question": "211)Which of the following is (are) true regarding computer security? \nI.Applying all available security measures may negatively impact system usability. \nII.Most intrusions result from exploitation of known vulnerabilities that remain unpatched.",
+        "image": null,
+        "options": [
+            "None",
+            "I and II",
+            "II only",
+            "I only"
+        ],
+        "answer": "I and II"
+    },
+    {
+        "question": "212)Good computer security practices include which of the following? \nI.Never shop online.  \nII.Remove excess RAM from computers. \nIII.Avoid sending email at night.",
+        "image": null,
+        "options": [
+            "II and III only",
+            "I and II only",
+            "I, II, and III",
+            "None"
+        ],
+        "answer": "None"
+    },
+    {
+        "question": "213)Examples of network monitoring tools include which of the following?  \nI.Packet sniffers  \nII.Antivirus software  \nIII.Security patches",
+        "image": null,
+        "options": [
+            "I only",
+            "I and III only",
+            "II only",
+            "I, II, and III"
+        ],
+        "answer": "I only"
+    },
+    {
+        "question": "214)Which of the following is (are) true of anti-virus software?\nI. Typically, it scans both files and memory.  \nII. It is ineffective unless it is updated frequently.  \nIII. It protects against network bandwidth attacks.",
+        "image": null,
+        "options": [
+            "II only",
+            "I and II only",
+            "I, II, and III",
+            "I and III only"
+        ],
+        "answer": "I and II only"
+    },
+    {
+        "question": "215)Which of the following is (are) important to ensuring computer security? \nI.Keep applications and operating system updated with the latest security patches. \nII.Replace motherboard batteries regularly. \nIII.Use firewalls",
+        "image": null,
+        "options": [
+            "III only",
+            "I, II, and III",
+            "I and III only",
+            "II and III only"
+        ],
+        "answer": "I and III only"
+    },
+    {
+        "question": "216)Which of the following statements is (are) true about smart cards?\n I.They are vulnerable to Internet attacks.\n II.They can encrypt data.",
+        "image": null,
+        "options": [
+            "II only",
+            "None",
+            "I and II",
+            "I only"
+        ],
+        "answer": "II only"
+    },
+    {
+        "question": "217)Which of the following is correct with respect to customers providing highly personal information across the Internet through electronic commerce transactions?",
+        "image": null,
+        "options": [
+            "Customers should never provide charge card information when asked to complete an electronic commerce transaction.",
+            "Transactions are relatively secure between the consumer and a company's Web site if the data is encrypted.",
+            "It is impossible for anybody to see the transaction on the Internet except for the intended Web site conducting the transaction.",
+            "If a transaction is encrypted, any unauthorized parties intercepting the transaction will take ten or more years to decrypt the information."
+        ],
+        "answer": "Transactions are relatively secure between the consumer and a company's Web site if the data is encrypted."
+    },
+    {
+        "question": "218)Which of the following comparisons between public-key encryption schemes and private-key encryption schemes is true?",
+        "image": null,
+        "options": [
+            "It takes longer to transmit encrypted data using private-key encryption schemes than public-key encryption schemes.",
+            "It is easier to decrypt data using private-key encryption schemes than public-key encryption schemes.",
+            "Private-key encryption schemes are more secure than public-key encryption schemes.",
+            "Public-key encryption schemes involve more computations than private-key encryption schemes."
+        ],
+        "answer": "Public-key encryption schemes involve more computations than private-key encryption schemes."
+    },
+    {
+        "question": "219)Which of the following is true about private-key encryption schemes?",
+        "image": null,
+        "options": [
+            "The sender and the receiver have different private keys.",
+            "The sender and the receiver use the same private key.",
+            "The sender and the receiver have two private keys, one for encryption and one for decryption.",
+            "The sender must notify the receiver before sending a message."
+        ],
+        "answer": "The sender and the receiver use the same private key."
+    },
+    {
+        "question": "220)Which of the following is (are) true regarding network monitoring tools? \nI. They should only be installed in a single location on a network. \nII. Monitoring only needs to be done when a problem is suspected.",
+        "image": null,
+        "options": [
+            "None",
+            "I and II",
+            "II only",
+            "I only"
+        ],
+        "answer": "None"
+    },
+    {
+        "question": "221)Anti-virus software with updated virus definitions typically protects against which of the following?  \nI.Worms  \nII.Trojan horse programs",
+        "image": null,
+        "options": [
+            "I only",
+            "None",
+            "I and II",
+            "II only"
+        ],
+        "answer": "I and II"
+    },
+    {
+        "question": "222)Convert the binary number 01011 to decimal",
+        "image": null,
+        "options": [
+            "11",
+            "110",
+            "1011",
+            "10"
+        ],
+        "answer": "11"
+    },
+    {
+        "question": "223)Convert the decimal number 63 to binary",
+        "image": null,
+        "options": [
+            "111111",
+            "110111",
+            "0110111",
+            "11011111"
+        ],
+        "answer": "111111"
+    },
+    {
+        "question": "224)Convert the decimal number 62 to binary",
+        "image": null,
+        "options": [
+            "111110",
+            "110111",
+            "0110111",
+            "11011111"
+        ],
+        "answer": "111110"
+    },
+    {
+        "question": "225)Convert the hexadecimal text D9 to binary",
+        "image": null,
+        "options": [
+            "1101 1001",
+            "1010 0111",
+            "1110 0100",
+            "1110 1101"
+        ],
+        "answer": "1101 1001"
+    },
+    {
+        "question": "226)Convert this binary number 010101 to decimal",
+        "image": null,
+        "options": [
+            "21",
+            "20",
+            "25)",
+            "22"
+        ],
+        "answer": "21"
+    },
+    {
+        "question": "227)Convert this binary number 010100 to decimal",
+        "image": null,
+        "options": [
+            "20",
+            "20",
+            "25)",
+            "22"
+        ],
+        "answer": "20"
+    },
+    {
+        "question": "228)Convert this hexadecimal number 8F to decimal",
+        "image": null,
+        "options": [
+            "143",
+            "142",
+            "141",
+            "140"
+        ],
+        "answer": "143"
+    },
+    {
+        "question": "229)Convert this decimal number 125) to binary",
+        "image": null,
+        "options": [
+            "1111101",
+            "1101011",
+            "1111011",
+            "1101001"
+        ],
+        "answer": "1111101"
+    },
+    {
+        "question": "230)Convert this hexadecimal number A3 to binary",
+        "image": null,
+        "options": [
+            "1010 0011",
+            "0110 1111",
+            "0110 1100",
+            "0111 1111"
+        ],
+        "answer": "1010 0011"
+    },
+    {
+        "question": "231)Convert this decimal number 117 to hexadecimal",
+        "image": null,
+        "options": [
+            "75)",
+            "0111 1111",
+            "85)",
+            "0110 1111"
+        ],
+        "answer": "75)"
+    },
+    {
+        "question": "232)Convert this decimal number 25)5) to hexadecimal",
+        "image": null,
+        "options": [
+            "FF",
+            "0111 1111",
+            "85)",
+            "0110 1111"
+        ],
+        "answer": "FF"
+    },
+    {
+        "question": "233)Convert this decimal number 4095) to hexadecimal",
+        "image": null,
+        "options": [
+            "FFF",
+            "0111 1111",
+            "85)",
+            "0110 1111"
+        ],
+        "answer": "FFF"
+    },
+    {
+        "question": "234)Convert this binary number 10001001 to hexadecimal",
+        "image": null,
+        "options": [
+            "89h",
+            "99a",
+            "0111 0111",
+            "89"
+        ],
+        "answer": "89h"
+    },
+    {
+        "question": "235)This means that each layer needs only a limited amount of knowledge to do its job",
+        "image": null,
+        "options": [
+            "Encapsulation",
+            "Abstraction",
+            "Deduction",
+            "E-learning"
+        ],
+        "answer": "Encapsulation"
+    },
+    {
+        "question": "236)What is the use of a range of modern information and technologies by government to improve efficiency, service etc. i.e. Internet,mobile,local area network?",
+        "image": null,
+        "options": [
+            "E-Commerce",
+            "E-Learning",
+            "E-Governance",
+            "E-Bussiness"
+        ],
+        "answer": "E-Governance"
+    },
+    {
+        "question": "237)What is referring to data in electronic form, which is logically associated with other data in electronic form and which is used by the signatory to sign?",
+        "image": null,
+        "options": [
+            "Cryptographic key",
+            "Electronic signature",
+            "Telegraph signatures",
+            "Faxed signatures"
+        ],
+        "answer": "Electronic signature"
+    },
+    {
+        "question": "238)_____________provides us a means by which we can access the applications as utilities, over the Internet. It allows us to create, configure, and customize applications online.",
+        "image": null,
+        "options": [
+            "Cloud computing",
+            "E-commerce",
+            "E-learning",
+            "Data centers"
+        ],
+        "answer": "Cloud computing"
+    },
+    {
+        "question": "239)What is a term for all types of technology-enhanced learning (TEL), where technology is used to support the learning process?",
+        "image": null,
+        "options": [
+            "Cloud computing",
+            "E-commerce",
+            "E-learning",
+            "Data centers"
+        ],
+        "answer": "E-learning"
+    },
+    {
+        "question": "240)What is a continuous representation, analogous to the actual information it represents?",
+        "image": null,
+        "options": [
+            "Analog data",
+            "Data",
+            "Information",
+            "Knowledge"
+        ],
+        "answer": "Analog data"
+    },
+    {
+        "question": "241)What is the technology that uses computing with high speed communication links to spread information from one place to another",
+        "image": null,
+        "options": [
+            "Information technology",
+            "Data",
+            "Knowledge",
+            "Computing systems"
+        ],
+        "answer": "Information technology"
+    },
+    {
+        "question": "242)_______are complex devices, dealing with a vast array of information categories",
+        "image": null,
+        "options": [
+            "Information technology",
+            "Data",
+            "Knowledge",
+            "Computing systems"
+        ],
+        "answer": "Computing systems"
+    },
+    {
+        "question": "243)In cryptography, what is cipher? I. algorithm for performing encryption and decryption  II. encrypted message",
+        "image": null,
+        "options": [
+            "Only I",
+            "Only II",
+            "Both I and II",
+            "None"
+        ],
+        "answer": "Both I and II"
+    },
+    {
+        "question": "244)In asymmetric key cryptography, the private key is kept by",
+        "image": null,
+        "options": [
+            "Sender",
+            "Receiver",
+            "Sender and receiver",
+            "All connected devices to the network"
+        ],
+        "answer": "Receiver"
+    },
+    {
+        "question": "245)____________is a set of computer instructions or data.",
+        "image": null,
+        "options": [
+            "Software",
+            "Hardware",
+            "Disk drive",
+            "Memory"
+        ],
+        "answer": "Software"
+    },
+    {
+        "question": "246)What provides connections among computers to enable computers to share data (e.g. documents), hardware (e.g. printers), and software resources (e.g. application programs)?",
+        "image": null,
+        "options": [
+            "Drivers",
+            "CPU",
+            "Network",
+            "Memory"
+        ],
+        "answer": "Network"
+    },
+    {
+        "question": "247)What is the IDE (Integrated Drive Electronics) cable",
+        "image": null,
+        "options": [
+            "Rolls data flow among component",
+            "Transfers data from storage devices to the motherboard",
+            "Stores data permanently",
+            "Serves as a socket on the motherboard"
+        ],
+        "answer": "Transfers data from storage devices to the motherboard"
+    },
+    {
+        "question": "248)Which of the following is an operating system?",
+        "image": null,
+        "options": [
+            "Unix, Linux, Front Page",
+            "OS / 2, Microsoft Office, Novell",
+            "Windows NT, Windows 2000, Novel Netware, Unix, Linux",
+            "Unix, Linux, Oracle",
+            "Unix, Linux, Windows XP, Access"
+        ],
+        "answer": "Unix, Linux, Windows XP, Access"
+    },
+    {
+        "question": "249)Hexadecimal number 45 in the 10 number system is written as?",
+        "image": null,
+        "options": [
+            "88",
+            "33",
+            "69",
+            "21",
+            "53"
+        ],
+        "answer": "69"
+    },
+    {
+        "question": "250)Using playfair cipher decipher following \nword: ughnmxsy \nkey:fin?",
+        "image": null,
+        "options": [
+            "thebeast",
+            "theebest",
+            "thebestt"
+        ],
+        "answer": "thebest"
+    }
+];
+
+        const shuffleArray = (array) => {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        };
+
+        const initTest = () => {
+            shuffleArray(testData); // Перемешиваем вопросы
+
+            testData.forEach((q) => {
+                shuffleArray(q.options); // Перемешиваем варианты ответов
+            });
+
+            totalQuestions = testData.length;
+            document.getElementById('total-questions').textContent = totalQuestions;
+
+            const container = document.getElementById('test-container');
+            testData.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+
+                questionDiv.innerHTML = `
+                    <div class="question-text"><strong>${q.question}</strong></div>
+                    ${q.image ? `<img src="${q.image}" alt="Image for question ${index + 1}">` : ''}
+                    <div class="answers">
+                        ${q.options
+                            .map((option) => `
+                                <button 
+                                    class="answer-btn" 
+                                    onclick="selectAnswer(this, ${index}, '${option}')">
+                                    ${option}
+                                </button>
+                            `)
+                            .join('')}
+                    </div>
+                `;
+
+                container.appendChild(questionDiv);
+            });
+
+            showQuestion(0);
+        };
+
+        window.onload = initTest;
+
+        const showQuestion = (index) => {
+            const questions = document.querySelectorAll('.question');
+            questions.forEach((q) => q.classList.remove('active'));
+            questions[index].classList.add('active');
+
+            document.getElementById('current-question').textContent = index + 1;
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('nextBtn').disabled = index === totalQuestions - 1;
+        };
+
+        const showNextQuestion = () => {
+            if (currentQuestionIndex < totalQuestions - 1) {
+                currentQuestionIndex++;
+                showQuestion(currentQuestionIndex);
+            }
+        };
+
+        const showPreviousQuestion = () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showQuestion(currentQuestionIndex);
+            }
+        };
+
+        const selectAnswer = (button, questionIndex, selectedAnswer) => {
+            const currentQuestion = testData[questionIndex];
+            const isCorrect = selectedAnswer === currentQuestion.answer;
+
+            // Удаляем стили со всех кнопок ответа
+            const buttons = button.closest('.answers').querySelectorAll('.answer-btn');
+            buttons.forEach((btn) => btn.classList.remove('correct', 'incorrect'));
+
+            // Если ответ правильный, подсвечиваем кнопку как правильную
+            if (isCorrect) {
+                button.classList.add('correct');
+                score++;
+            } else {
+                button.classList.add('incorrect');
+
+                // Подсвечиваем правильный вариант ответа
+                const correctButton = Array.from(buttons).find(
+                    (btn) => btn.textContent.trim() === currentQuestion.answer.trim()
+                );
+                if (correctButton) {
+                    correctButton.classList.add('correct');
+                }
+            }
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('percentage').textContent = `${((score / totalQuestions) * 100).toFixed(2)}%`;
+
+            // Отключаем возможность повторного выбора
+            buttons.forEach((btn) => (btn.onclick = null));
+        };
+
+        const finishTest = () => {
+            alert(`Тест завершён! Ваш результат: ${score} из ${totalQuestions} (${((score / totalQuestions) * 100).toFixed(2)}%).`);
+        };
+    </script>
+</body>
+</html>
